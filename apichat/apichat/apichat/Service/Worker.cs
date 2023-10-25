@@ -7,40 +7,59 @@ namespace kafka_consumer
 {
     public class Worker : BackgroundService
     {
-        Kafka _kafka;
-        public Worker(Kafka kafka)
+        IConfiguration _Configuration;
+        public Worker(IConfiguration Configuration)
         {
-            _kafka = kafka;
+            _Configuration = Configuration;
         }
+
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                using var kafka = new Kafka(_Configuration);
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    await Task.Delay(0);
-                    _kafka.SubScribe("chat");
-                    ConsumeResult<Null, string> consumedData = _kafka.Consume("chat", stoppingToken);
-                    //if EnablePartitionEof is set to true. This value can be used to check whether there is no more data to read or the data on that offset is null. 
-                    if (consumedData.IsPartitionEOF)
+                    try
                     {
-                        //put delay here
-                        Console.WriteLine("No data left in kafka to read!");
+                        await Task.Delay(10);
+                        ConsumeResult<Null, string> consumedData = kafka.Consume("chat", stoppingToken);
+                        //if EnablePartitionEof is set to true. This value can be used to check whether there is no more data to read or the data on that offset is null. 
+                        if (consumedData == null)
+                        {
+                            continue;
+                        }
+                        if (consumedData.IsPartitionEOF)
+                        {
+                            //put delay here
+                            Console.WriteLine("No data left in kafka to read!");
+                        }
+                        //Get the consumed message value using consumedData.Message.Value.
+                        Console.WriteLine($"Message consumed: {consumedData.Message.Value}");
                     }
-                    //Get the consumed message value using consumedData.Message.Value.
-                    Console.WriteLine($"Message consumed: {consumedData.Message.Value}");
-                }
-                catch (ConsumeException ex)
-                {
-                    Console.WriteLine($"Consumer Exception occurred {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-                    Console.WriteLine($"Exception occurred {ex.Message}");
+                    catch (ConsumeException ex)
+                    {
+                        Console.WriteLine($"Consumer Exception occurred {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                        Console.WriteLine($"Exception occurred {ex.Message}");
+                    }
                 }
             }
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            await base.StopAsync(cancellationToken);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
         }
     }
 
@@ -68,6 +87,7 @@ namespace kafka_consumer
 
         public virtual async Task StopAsync(CancellationToken cancellationToken)
         {
+            Console.WriteLine("종료됨");
             // Stop called without start
             if (_executingTask == null)
             {
@@ -87,6 +107,7 @@ namespace kafka_consumer
 
         public virtual void Dispose()
         {
+            Console.WriteLine("Dispose 됨");
             _stoppingCts.Cancel();
         }
     }

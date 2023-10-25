@@ -3,7 +3,7 @@ using System.Net;
 
 namespace apichat.Service
 {
-    public class Kafka
+    public class Kafka : IDisposable
     {
         ProducerBuilder<Null, string> _produce;
         ConsumerBuilder<Null, string> _consume;
@@ -13,6 +13,7 @@ namespace apichat.Service
         {
             _Configuration = Configuration;
             (_produce, _consume) = Connect();
+            SubScribe("chat");
         }
 
         public (ProducerBuilder<Null,string>, ConsumerBuilder<Null, string>) Connect()
@@ -21,7 +22,7 @@ namespace apichat.Service
             ProducerConfig config = new ProducerConfig
             {
                 BootstrapServers = connectionStr,
-                ClientId = Dns.GetHostName()
+                ClientId = Dns.GetHostName(),
             };
 
             var produce = new ProducerBuilder<Null, string>(config);
@@ -34,6 +35,7 @@ namespace apichat.Service
             };
 
             var consume = new ConsumerBuilder<Null, string>(config2);
+
             return (produce,consume);
         }
         public async Task<bool> Publish
@@ -66,7 +68,18 @@ namespace apichat.Service
             ConsumeResult<Null, string> result = _consumer.Consume(cancellationToken);
             return result;
         }
+        public ConsumeResult<Null, string> Consume(string topic, int time)
+        {
+            ConsumeResult<Null, string> result = _consumer.Consume(time);
+            return result;
+        }
+
+        public void Dispose()
+        {
+            UnSubScribe();
+            _consumer.Close();
+            _consumer.Dispose();
+            Console.WriteLine("나 끝났어");
+        }
     }
-
-
 }

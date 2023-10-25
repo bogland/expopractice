@@ -9,9 +9,9 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<Redis>();
-builder.Services.AddSingleton<Kafka>();
-builder.Services.AddHostedService<Worker>();
+//builder.Services.AddSingleton<Redis>();
+builder.Services.AddScoped<Kafka>();
+builder.Services.AddHostedService<KafkaConsumer>();
 
 var app = builder.Build();
 
@@ -28,4 +28,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+
+app .Run();
+
